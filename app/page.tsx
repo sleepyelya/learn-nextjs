@@ -1,15 +1,10 @@
 "use client";
 import React, { useState, useEffect } from "react";
-import dynamic from "next/dynamic";
 import styled from "styled-components";
-import bunnyCry from "./animations/bunnyCry.json";
-import bunnyPlease from "./animations/bunnyPlease.json";
-import bunnyYes from "./animations/bunnyYes.json";
-import bunnyPunch from "./animations/bunnyPunch.json";
 import Button from "./components/Button";
 
-// Это магическая строчка, которая лечит твою ошибку
-const Lottie = dynamic(() => import("react-lottie"), { ssr: false });
+// Мы импортируем библиотеку только ВНУТРИ компонента
+let Lottie: any = () => null;
 
 const getRandomPosition = () => {
   if (typeof window !== 'undefined') {
@@ -26,10 +21,29 @@ export default function Home() {
   const [bunnyState, setBunnyState] = useState("normal");
   const [hasStarted, setHasStarted] = useState(false);
   const [randomPosition, setRandomPosition] = useState({ randomLeft: "0px", randomTop: "0px" });
+  
+  // Анимации подгружаем динамически
+  const [animations, setAnimations] = useState<any>({});
 
   useEffect(() => {
-    setIsClient(true);
-    setRandomPosition(getRandomPosition());
+    // Импортируем всё только в браузере
+    const loadLottie = async () => {
+      const LottieLib = (await import("react-lottie")).default;
+      Lottie = LottieLib;
+      
+      const [cry, please, yes, punch] = await Promise.all([
+        import("./animations/bunnyCry.json"),
+        import("./animations/bunnyPlease.json"),
+        import("./animations/bunnyYes.json"),
+        import("./animations/bunnyPunch.json"),
+      ]);
+      
+      setAnimations({ cry, please, yes, punch });
+      setIsClient(true);
+      setRandomPosition(getRandomPosition());
+    };
+    
+    loadLottie();
   }, []);
 
   const handleHover = (hoverState: boolean) => {
@@ -57,10 +71,10 @@ export default function Home() {
           {bunnyState === "yes" ? "С Днем Рождения, Хлопик! ❤️" : "У Хлопика сегодня день рождения?"}
         </div>
         <div className="animation">
-          {bunnyState === "normal" && <Lottie options={lottieSettings(bunnyPlease)} height={300} width={300} />}
-          {bunnyState === "cry" && <Lottie options={lottieSettings(bunnyCry)} height={300} width={300} />}
-          {bunnyState === "yes" && <Lottie options={lottieSettings(bunnyYes)} height={400} width={400} />}
-          {bunnyState === "punch" && <Lottie options={lottieSettings(bunnyPunch)} height={300} width={300} />}
+          {bunnyState === "normal" && animations.please && <Lottie options={lottieSettings(animations.please)} height={300} width={300} />}
+          {bunnyState === "cry" && animations.cry && <Lottie options={lottieSettings(animations.cry)} height={300} width={300} />}
+          {bunnyState === "yes" && animations.yes && <Lottie options={lottieSettings(animations.yes)} height={400} width={400} />}
+          {bunnyState === "punch" && animations.punch && <Lottie options={lottieSettings(animations.punch)} height={300} width={300} />}
         </div>
         {bunnyState !== "yes" && (
           <div className="buttons">
